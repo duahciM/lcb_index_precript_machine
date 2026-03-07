@@ -1,7 +1,7 @@
 import requests
 
-OLLAMA_URL = "http://localhost:11434/api/generate"
-MODEL_NAME = "qwen2.5:3b"
+OLLAMA_URL = "http://localhost:11434/api/generate" # 替换成你本地运行的 Ollama API 地址
+MODEL_NAME = "qwen2.5:3b" #替换成你本地运行的模型名称
 
 def generate_from_local_llm(prompt: str) -> str:
     payload = {
