@@ -47,7 +47,7 @@ def build_prompt(mode: str, history: list[str]) -> str:
 - 不需要说明原因
 - 不要像生活建议
 - 不要像诗句或谜语
-- 长度 8 到 22 个汉字
+- 长度 10 到 40 个汉字
 
 
 现在只输出一句命令："""
