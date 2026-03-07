@@ -75,3 +75,9 @@ print(resp.json())
 - 请确保 PowerShell 使用 UTF-8 编码以正确显示中文输出。
 - 如果模型返回带前缀的文本，`normalize_output` 会进行清理。
 
+## Disclaimer
+
+This project is a fan-made tool inspired by the atmosphere of Project Moon's works.
+It is not affiliated with or endorsed by Project Moon.
+
+All trademarks and logos belong to their respective owners.
