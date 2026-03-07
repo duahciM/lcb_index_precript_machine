@@ -34,7 +34,6 @@ uvicorn app.main:app --reload
 ```
 
 默认会在 `http://127.0.0.1:8000` 提供接口。
-打开web/index.html。
 
 ## 使用方法
 
@@ -63,6 +62,8 @@ print(resp.json())
     "mode": "ritual"
 }
 ```
+
+打开本地目录下的web/index.html即可正常访问
 
 ## 进阶
 
