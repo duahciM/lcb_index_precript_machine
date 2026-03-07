@@ -163,6 +163,23 @@
       color: var(--text);
       text-shadow: 0 0 10px rgba(143, 231, 255, 0.18);
       word-break: break-word;
+      position: relative;
+      letter-spacing: 0.04em;
+    }
+
+    .output.scrambling {
+      filter: blur(0.15px);
+      text-shadow:
+        0 0 8px rgba(143, 231, 255, 0.28),
+        0 0 18px rgba(143, 231, 255, 0.12);
+    }
+
+    .glyph {
+      opacity: 0.84;
+    }
+
+    .glyph.locked {
+      opacity: 1;
     }
 
     .cursor {
@@ -248,6 +265,18 @@
       50% { opacity: 0.35; }
     }
 
+    @keyframes jitter {
+      0% { transform: translateX(0); }
+      25% { transform: translateX(0.2px); }
+      50% { transform: translateX(-0.2px); }
+      75% { transform: translateX(0.15px); }
+      100% { transform: translateX(0); }
+    }
+
+    .screen.is-receiving .output {
+      animation: jitter 0.06s linear infinite;
+    }
+
     @media (max-width: 680px) {
       .meta {
         grid-template-columns: 1fr;
@@ -303,9 +332,11 @@
     const stateValue = document.getElementById('stateValue');
     const timeValue = document.getElementById('timeValue');
     const statusText = document.getElementById('statusText');
+    const screen = document.querySelector('.screen');
 
     let counter = 0;
     let audioCtx = null;
+    const SCRAMBLE_SET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*+-/=<>?▓▒░';
 
     function nowTime() {
       return new Date().toLocaleTimeString('zh-CN', { hour12: false });
@@ -323,7 +354,7 @@
       return audioCtx;
     }
 
-    function beep(freq = 980, duration = 0.06, delay = 0) {
+    function beep(freq = 980, duration = 0.06, delay = 0, volume = 0.03) {
       const ctx = ensureAudio();
       const start = ctx.currentTime + delay;
       const osc = ctx.createOscillator();
@@ -332,7 +363,7 @@
       osc.type = 'square';
       osc.frequency.setValueAtTime(freq, start);
       gain.gain.setValueAtTime(0.0001, start);
-      gain.gain.exponentialRampToValueAtTime(0.03, start + 0.005);
+      gain.gain.exponentialRampToValueAtTime(volume, start + 0.005);
       gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
 
       osc.connect(gain);
@@ -347,16 +378,59 @@
       beep(980, 0.07, 0.18);
     }
 
+    function randomGlyph() {
+      return SCRAMBLE_SET[Math.floor(Math.random() * SCRAMBLE_SET.length)];
+    }
+
+    function renderGlyphs(chars, lockedCount = 0) {
+      output.innerHTML = chars.map((ch, idx) => {
+        const cls = idx < lockedCount ? 'glyph locked' : 'glyph';
+        return `<span class="${cls}">${ch}</span>`;
+      }).join('') + '<span class="cursor">█</span>';
+    }
+
     async function typeText(text, speed = 28) {
       output.textContent = '';
       for (let i = 0; i < text.length; i++) {
         output.textContent += text[i];
         if (text[i].trim()) {
-          beep(820 + (i % 5) * 50, 0.018, 0);
+          beep(820 + (i % 5) * 50, 0.018, 0, 0.014);
         }
         await new Promise(resolve => setTimeout(resolve, speed));
       }
       output.innerHTML = `${output.textContent}<span class="cursor">█</span>`;
+    }
+
+    async function scrambleReveal(finalText, rounds = 9, frameDelay = 42) {
+      const chars = Array.from(finalText);
+      const working = chars.map(ch => (ch.trim() ? randomGlyph() : ch));
+
+      output.classList.add('scrambling');
+      screen.classList.add('is-receiving');
+
+      for (let locked = 0; locked <= chars.length; locked++) {
+        for (let round = 0; round < rounds; round++) {
+          for (let i = locked; i < chars.length; i++) {
+            if (!chars[i].trim()) {
+              working[i] = chars[i];
+            } else if (Math.random() < 0.7) {
+              working[i] = randomGlyph();
+            }
+          }
+
+          for (let i = 0; i < locked; i++) {
+            working[i] = chars[i];
+          }
+
+          renderGlyphs(working, locked);
+          beep(700 + (locked % 6) * 45, 0.014, 0, 0.008);
+          await new Promise(resolve => setTimeout(resolve, frameDelay));
+        }
+      }
+
+      output.classList.remove('scrambling');
+      screen.classList.remove('is-receiving');
+      output.innerHTML = `${finalText}<span class="cursor">█</span>`;
     }
 
     async function fetchPrescript() {
@@ -381,14 +455,16 @@
         const data = await res.json();
         const text = data.prescript || '未收到有效指令';
         modeValue.textContent = (data.mode || 'ritual').toUpperCase();
-        stateValue.textContent = 'DISPLAYING';
+        stateValue.textContent = 'DECODING';
         timeValue.textContent = nowTime();
         statusText.textContent = 'LINK STABLE';
         tripleBeep();
-        await typeText(text, 34);
+        await scrambleReveal(text, 7, 36);
         stateValue.textContent = 'IDLE';
       } catch (err) {
         output.innerHTML = `<span class="error">信号中断：${String(err.message || err)}</span><span class="cursor">█</span>`;
+        screen.classList.remove('is-receiving');
+        output.classList.remove('scrambling');
         stateValue.textContent = 'ERROR';
         timeValue.textContent = nowTime();
         statusText.textContent = 'LINK DEGRADED';
