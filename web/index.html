@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <script src="prescript.js"></script>
+  
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Prescript Pager</title>
@@ -288,6 +288,7 @@
   </style>
 </head>
 <body>
+  <script src="prescript.js"></script>
   <div class="shell">
     <div class="topbar">
       <div>PRESCRIPT PAGER TERMINAL</div>
@@ -442,7 +443,7 @@
   try {
     // 2. 直接调用你独立脚本中的逻辑
     // 假设你已经在全局作用域里准备好了 getOrCreateUserId() 和 generatePrescript()
-    //const userId = getOrCreateUserId(); 
+    const userId = getOrCreateUserId(); 
     const rng = makeDailyRng(userId);
     const text = generatePrescript(rng); // 这里直接获取生成的句子
 
