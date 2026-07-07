@@ -57,10 +57,8 @@ localStorage.setItem("user_id", id);
 return id;
 }
 function makeDailyRng(userId) {
-const day = isoDayLocal();
-const ua = navigator.userAgent || "";
-const seedStr = `${userId}|${day}|${ua}`;
-const seed = xmur3(seedStr)();
+// 移除了基于用户、日期和用户代理的固定种子字符串，改用 Math.random() 生成完全随机的数值作为种子。
+const seed = xmur3(Math.random().toString())();
 return mulberry32(seed);
 }
 function ordinalSuffix(n) {
