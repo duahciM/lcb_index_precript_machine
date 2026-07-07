@@ -439,14 +439,16 @@
   await typeText('正在接收指令...', 18);
 
   try {
-    // 2. 直接调用你独立脚本中的逻辑
-    // 假设你已经在全局作用域里准备好了 getOrCreateUserId() 和 generatePrescript()
     const userId = getOrCreateUserId(); 
     const rng = makeDailyRng(userId);
-    const text = generatePrescript(rng); // 这里直接获取生成的句子
+    let text = generatePrescript(rng); // 获取生成的句子
 
-    // 3. 更新界面状态
-    modeValue.textContent = 'RITUAL'; 
+        // --- 新增：在这里对文本进行清洗 ---
+        // 确保它符合规范，移除多余空格，并修复标点导致的断字
+    text = normalizePunctuation(text); 
+        // ---------------------------------
+
+    modeValue.textContent = 'RITUAL';
     stateValue.textContent = 'DECODING';
     timeValue.textContent = nowTime();
     statusText.textContent = 'LINK STABLE';
