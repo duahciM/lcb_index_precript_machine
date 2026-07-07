@@ -437,19 +437,19 @@
       await typeText('正在接收指令...', 18);
 
       try {
-        const res = await fetch('http://127.0.0.1:8000/generate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mode: 'ritual' })
-        });
-
+        const res = await fetch('prescripts.txt');
         if (!res.ok) {
-          throw new Error(`HTTP ${res.status}`);
+          throw new Error(`未收到有效指令`);
         }
-
-        const data = await res.json();
-        const text = data.prescript || '未收到有效指令';
-        modeValue.textContent = (data.mode || 'ritual').toUpperCase();
+        
+       
+        const fileContent = await res.text();
+        
+        
+        const lines = fileContent.split('\n').filter(line => line.trim() !== '');
+        const randomIndex = Math.floor(Math.random() * lines.length);
+        const text = lines[randomIndex] || '未收到有效指令';
+        modeValue.textContent = 'RITUAL'; 
         stateValue.textContent = 'DECODING';
         timeValue.textContent = nowTime();
         statusText.textContent = 'LINK STABLE';
