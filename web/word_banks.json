@@ -1,2 +1,59 @@
-呼吸
-睡觉
+{
+  "locationA": ["beach", "convenience store", "backstreet alleyway", "abandoned lighthouse", "the Nest", "District 20"],
+  "preprescript": [
+    "Pack a lunchbox and consume it on top of a trash can...",
+    "Find someone at {finalllocation} and make sure they never speak again."
+  ],
+  "personidentifyer": ["ugly", "beautiful", "charismatic", "anxious", "frail"],
+  "personidentifyer2": ["ugliest", "prettiest", "most-unhinged", "tallest"],
+  "color1": ["blue ", "black ", "velvet ", "light green ", "crimson "],
+  "persontype": ["friend", "stranger", "member of the index", "a rat", "sweeper"],
+  "persontype2": ["bipedal being", "presence", "silhouette", "something unknown"],
+  "clothing": ["hat", "hoodie", "mask", "glasses", "coat"],
+  "material_condition": ["cloth ", "leather ", "worn ", "bloodstained ", "torn ", ""],
+  "games": ["Patty Cake", "Never Have I Ever", "a game played in the dark"],
+  "verbs": ["touch", "hold", "stab", "hug", "whisper to"],
+  "additionalrandom": ["", " backwards", " with {finalhowtofind} watching"],
+  "transition": [", then ", " and ", ". After doing so, "],
+  "followup": ["proceed to light them on fire.", "discard this prescript immediately.", "return to your residence."],
+  "follow2up": [" Their gender does not matter.", " You must sleep {number9} hours tonight."],
+  
+  "objcs": [
+    "{finalclothing}",
+    "{finalcolor1} notebook with {number1} pages",
+    "picture of {pick_persontype}",
+    "keyring with {number1} keys",
+    "something important of a {pick_persontype}"
+  ],
+  "topic": [
+    "love", 
+    "the {number1}{end1} person you met", 
+    "why people wear {pick_color1} clothing",
+    "playing {finalgames}"
+  ],
+  "activities": [
+    "commit a felony",
+    "make a cake for a {pick_persontype2}",
+    "carry a {pick_objcs} around for no reason"
+  ],
+  "task0": [
+    "",
+    "Without seeking permission, ",
+    "Wear a {finalcolor1} {finalclothing} and "
+  ],
+  "starter": [
+    "",
+    "pause briefly, ",
+    "wait {number4} seconds, then "
+  ],
+  "task1": [
+    "observe {finalhowtofind} from a distance",
+    "chase {finalhowtofind} and {pick_verbs} them",
+    "punch {finalhowtofind} and beat them down{finaladditionalrandom}",
+    "talk to {finalhowtofind} about {finaltopic}"
+  ],
+  "howtofind_case1": ["a person you hate", "the nearest {finalptype}"],
+  "howtofind_case2": ["the last person you see before you get home"],
+  "howtofind_case3": ["the last {finalpersonidentifyer2} person you see"],
+  "howtofind_case4": ["someone in {finalcolor1}{finalclothing}"]
+}
