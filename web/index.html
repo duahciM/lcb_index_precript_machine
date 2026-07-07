@@ -438,13 +438,12 @@
   
   // 1. 模拟网络延迟（保持交互感）
       await typeText('正在接收指令...', 18);
-
+    <script src="prescript.js">
       try {
-    // 2. 直接调用你独立脚本中的逻辑
-    // 假设你已经在全局作用域里准备好了 getOrCreateUserId() 和 generatePrescript()
         const userId = getOrCreateUserId(); 
         const rng = makeDailyRng(userId);
         const text = generatePrescript(rng); // 这里直接获取生成的句子
+    </script>
 
     // 3. 更新界面状态
         modeValue.textContent = 'RITUAL'; 
