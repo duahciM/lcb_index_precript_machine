@@ -320,166 +320,229 @@
   </div>
 
   <script>
-    const output = document.getElementById('output');
-    const receiveBtn = document.getElementById('receiveBtn');
-    const prescriptId = document.getElementById('prescriptId');
-    const modeValue = document.getElementById('modeValue');
-    const stateValue = document.getElementById('stateValue');
-    const timeValue = document.getElementById('timeValue');
-    const statusText = document.getElementById('statusText');
-    const screen = document.querySelector('.screen');
+  const receiveBtn = document.getElementById('receiveBtn');
+  const terminalText = document.getElementById('terminalText');
+  const noiseOverlay = document.getElementById('noiseOverlay');
+  const bgm = document.getElementById('bgm');
+  const sfx = document.getElementById('sfx');
 
-    let counter = 0;
-    let audioCtx = null;
-    const SCRAMBLE_SET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*+-/=<>?▓▒░';
+  // --- 拼贴辅助函数（原作者洗白算法） ---
+  function normalizePunctuation(text) {
+    if (!text) return text;
+    return text
+      .replace(/\s*,\s*\./g, ".")
+      .replace(/\s*\.\s*,/g, ".")
+      .replace(/([.,!?])\1+/g, "$1")
+      .replace(/\s+([.,!?])/g, "$1")
+      .replace(/([.,!?])([A-Za-z])/g, "$1 $2")
+      .replace(/([.!?]\s+)([a-z])/g, (_, p1, p2) => p1 + p2.toUpperCase())
+      .replace(/^\s*([a-z])/g, m => m.toUpperCase())
+      .trim();
+  }
 
-    function nowTime() {
-      return new Date().toLocaleTimeString('zh-CN', { hour12: false });
+  const randInt = (max) => Math.floor(Math.random() * max);
+  const pick = (arr) => (arr && arr.length > 0) ? arr[randInt(arr.length)] : "";
+
+  function ordinalSuffix(n) {
+    const mod100 = n % 100;
+    if (mod100 >= 11 && mod100 <= 13) return "th";
+    switch (n % 10) {
+      case 1: return "st";
+      case 2: return "nd";
+      case 3: return "rd";
+      default: return "th";
+    }
+  }
+
+  function capFirst(s) {
+    return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+  }
+
+  // --- 核心拼贴引擎 ---
+  async function generatePrescript() {
+    // 异步拉取分离出去的纯文本库文件
+    const res = await fetch('word_banks.json');
+    if (!res.ok) throw new Error("无法读取 word_banks.json 文本库文件");
+    const db = await res.json();
+
+    // 150分之1的概率直接掉落大段预设指令
+    if (randInt(150) === 4) {
+      return pick(db.preprescript);
     }
 
-    function nextId() {
-      counter += 1;
-      return `PS-${String(counter).padStart(3, '0')}`;
-    }
+    // 摇出一轮全局基础随机种子（这一步和原作者逻辑完全对齐）
+    const state = {
+      number1: randInt(150) + 1,
+      number7: randInt(100) + 1,
+      number2: randInt(400) + 1,
+      number4: randInt(1300) + 1,
+      number5: randInt(6) + 1,
+      number9: randInt(8) + 1,
+      number8: randInt(7) + 1,
+      number11: randInt(12) + 1,
+      
+      finalllocation: pick(db.locationA),
+      finalpersonidentifyer: pick(db.personidentifyer),
+      finalpersonidentifyer2: pick(db.personidentifyer2),
+      finalcolor1: pick(db.color1),
+      finalcolorrequire: pick(db.color1),
+      finalptype: pick(db.persontype),
+      finalptype1: pick(db.persontype),
+      finalptype2: pick(db.persontype2),
+      finalptype3: pick(db.persontype2),
+      
+      finalclothing: (pick(db.material_condition) + pick(db.clothing)).trim(),
+      finalclothing2: (pick(db.material_condition) + pick(db.clothing)).trim(),
+      finalgames: pick(db.games)
+    };
 
-    function ensureAudio() {
-      if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      return audioCtx;
-    }
+    state.end1 = ordinalSuffix(state.number1);
+    state.end7 = ordinalSuffix(state.number7);
+    state.end8 = ordinalSuffix(state.number8);
 
-    function beep(freq = 980, duration = 0.06, delay = 0, volume = 0.03) {
-      const ctx = ensureAudio();
-      const start = ctx.currentTime + delay;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
+    // 递归解析占位符 Token 引擎，允许词条内部无限套娃
+    function resolveTokens(str) {
+      if (!str) return "";
+      let lastStr = "";
+      let currentStr = str;
 
-      osc.type = 'square';
-      osc.frequency.setValueAtTime(freq, start);
-      gain.gain.setValueAtTime(0.0001, start);
-      gain.gain.exponentialRampToValueAtTime(volume, start + 0.005);
-      gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
-
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(start);
-      osc.stop(start + duration + 0.01);
-    }
-
-    function tripleBeep() {
-      beep(920, 0.05, 0.00);
-      beep(1100, 0.05, 0.09);
-      beep(980, 0.07, 0.18);
-    }
-
-    function randomGlyph() {
-      return SCRAMBLE_SET[Math.floor(Math.random() * SCRAMBLE_SET.length)];
-    }
-
-    function renderGlyphs(chars, lockedCount = 0) {
-      output.innerHTML = chars.map((ch, idx) => {
-        const cls = idx < lockedCount ? 'glyph locked' : 'glyph';
-        return `<span class="${cls}">${ch}</span>`;
-      }).join('') + '<span class="cursor">█</span>';
-    }
-
-    async function typeText(text, speed = 28) {
-      output.textContent = '';
-      for (let i = 0; i < text.length; i++) {
-        output.textContent += text[i];
-        if (text[i].trim()) {
-          beep(820 + (i % 5) * 50, 0.018, 0, 0.014);
-        }
-        await new Promise(resolve => setTimeout(resolve, speed));
-      }
-      output.innerHTML = `${output.textContent}<span class="cursor">█</span>`;
-    }
-
-    async function scrambleReveal(finalText, rounds = 9, frameDelay = 42) {
-      const chars = Array.from(finalText);
-      const working = chars.map(ch => (ch.trim() ? randomGlyph() : ch));
-
-      output.classList.add('scrambling');
-      screen.classList.add('is-receiving');
-
-      for (let locked = 0; locked <= chars.length; locked++) {
-        for (let round = 0; round < rounds; round++) {
-          for (let i = locked; i < chars.length; i++) {
-            if (!chars[i].trim()) {
-              working[i] = chars[i];
-            } else if (Math.random() < 0.7) {
-              working[i] = randomGlyph();
-            }
+      while (currentStr !== lastStr) {
+        lastStr = currentStr;
+        currentStr = currentStr.replace(/{([\w_]+)}/g, (match, token) => {
+          // 匹配到了预设的变量
+          if (state[token] !== undefined) return state[token];
+          
+          // 匹配到了实时抽取的 {pick_xxx}
+          if (token.startsWith('pick_')) {
+            const bankName = token.replace('pick_', '');
+            if (db[bankName]) return pick(db[bankName]);
           }
+          return match;
+        });
+      }
+      return currentStr;
+    }
 
-          for (let i = 0; i < locked; i++) {
-            working[i] = chars[i];
-          }
+    // 生成复合嵌套词条
+    state.finalobjcs = resolveTokens(pick(db.objcs));
+    state.finaltopic = resolveTokens(pick(db.topic));
+    state.finalactivities = resolveTokens(pick(db.activities));
 
-          renderGlyphs(working, locked);
-          beep(700 + (locked % 6) * 45, 0.014, 0, 0.008);
-          await new Promise(resolve => setTimeout(resolve, frameDelay));
+    // 根据分支几率决定去哪个寻找目标的池子里抽
+    let howtofindPool;
+    if (state.number5 > 5) {
+      howtofindPool = state.finalpersonidentifyer !== "" ? db.howtofind_case1 : db.howtofind_case2;
+    } else {
+      howtofindPool = state.finalpersonidentifyer !== "" ? db.howtofind_case3 : db.howtofind_case4;
+    }
+    state.finalhowtofind = resolveTokens(pick(howtofindPool));
+    state.finaladditionalrandom = resolveTokens(pick(db.additionalrandom));
+
+    // 拼装宏观大句子
+    const finaltask0 = resolveTokens(pick(db.task0));
+    let finalstarter = resolveTokens(pick(db.starter));
+    let finaltask1 = resolveTokens(pick(db.task1));
+
+    // 首字母大写修正补丁
+    if (finaltask0 === "") {
+      if (finalstarter) finalstarter = capFirst(finalstarter);
+      else if (finaltask1) finaltask1 = capFirst(finaltask1);
+    }
+
+    let finalscript = finaltask0 + finalstarter + finaltask1;
+
+    // 是否拼贴追击第二阶段后续指令
+    if (randInt(2) === 1) {
+      const finaltransition = resolveTokens(pick(db.transition));
+      const finalfollowup = resolveTokens(pick(db.followup));
+      const finalfollowup2 = (randInt(4) === 2) ? resolveTokens(pick(db.follow2up)) : "";
+
+      finalscript += finaltransition + finalfollowup + finalfollowup2;
+    }
+
+    // 洗白字符并返回
+    return normalizePunctuation(finalscript);
+  }
+
+  // --- 原汁原味的随机符号解码动画算法 ---
+  function scrambleReveal(text, element, duration = 3000, callback) {
+    const chars = "112233";
+    const length = text.length;
+    let progress = 0;
+    const intervalTime = 30;
+    const totalSteps = duration / intervalTime;
+    const stepIncrement = 1 / totalSteps;
+
+    const timer = setInterval(() => {
+      progress += stepIncrement;
+      if (progress >= 1) {
+        progress = 1;
+        clearInterval(timer);
+      }
+
+      let currentDisplay = "";
+      for (let i = 0; i < length; i++) {
+        if (text[i] === " " || text[i] === "\n") {
+          currentDisplay += text[i];
+          continue;
+        }
+        const revealThreshold = (i / length) * 0.4 + 0.6 * progress;
+        if (progress >= revealThreshold) {
+          currentDisplay += text[i];
+        } else {
+          currentDisplay += chars[Math.floor(Math.random() * chars.length)];
         }
       }
 
-      output.classList.remove('scrambling');
-      screen.classList.remove('is-receiving');
-      output.innerHTML = `${finalText}<span class="cursor">█</span>`;
-    }
+      element.textContent = currentDisplay;
 
-    async function fetchPrescript() {
-      receiveBtn.disabled = true;
-      stateValue.textContent = 'RECEIVING';
-      statusText.textContent = 'REQUESTING';
-      prescriptId.textContent = nextId();
-      tripleBeep();
-      await typeText('正在接收指令...', 18);
+      if (progress === 1 && callback) {
+        callback();
+      }
+    }, intervalTime);
+  }
+
+  // --- 交互控制与动效触发 ---
+  receiveBtn.addEventListener('click', async () => {
+    receiveBtn.disabled = true;
+    receiveBtn.style.opacity = '0.5';
+
+    // 播放背景乐与打字音效
+    if (bgm.paused) {
+      bgm.volume = 0.4;
+      bgm.play().catch(e => console.log("BGM 自动播放受限:", e));
+    }
+    sfx.currentTime = 0;
+    sfx.play().catch(e => console.log("SFX 播放错误:", e));
+
+    // 第一阶段：杂音突变提示
+    terminalText.style.color = '#ff3b30';
+    terminalText.textContent = "RECEIVING PRESCRIPT FROM THE INDEX...";
+    noiseOverlay.style.animation = 'noise-sharp 0.2s infinite, glitch-anim 0.5s infinite';
+
+    setTimeout(async () => {
+      // 恢复平稳电台微弱杂音
+      noiseOverlay.style.animation = 'noise-subtle 1s infinite';
+      terminalText.style.color = '#00ff66';
 
       try {
-        const res = await fetch('prescripts.txt');
-        if (!res.ok) {
-          throw new Error(`未收到有效指令`);
-        }
-        
-       
-        const fileContent = await res.text();
-        
-        
-        const lines = fileContent.split('\n').filter(line => line.trim() !== '');
-        const randomIndex = Math.floor(Math.random() * lines.length);
-        const text = lines[randomIndex] || '未收到有效指令';
-        modeValue.textContent = 'RITUAL'; 
-        stateValue.textContent = 'DECODING';
-        timeValue.textContent = nowTime();
-        statusText.textContent = 'LINK STABLE';
-        tripleBeep();
-        await scrambleReveal(text, 7, 36);
-        stateValue.textContent = 'IDLE';
-      } catch (err) {
-        output.innerHTML = `<span class="error">信号中断：${String(err.message || err)}</span><span class="cursor">█</span>`;
-        screen.classList.remove('is-receiving');
-        output.classList.remove('scrambling');
-        stateValue.textContent = 'ERROR';
-        timeValue.textContent = nowTime();
-        statusText.textContent = 'LINK DEGRADED';
-        beep(260, 0.15, 0);
-      } finally {
+        // 【核心平替部分】：不再从外部 txt 读整行，而是调用实时拼贴引擎拼出一句成品
+        const selectedPrescript = await generatePrescript();
+
+        // 喂给原有的特殊符号解码打字机动画
+        scrambleReveal(selectedPrescript, terminalText, 4000, () => {
+          receiveBtn.disabled = false;
+          receiveBtn.style.opacity = '1';
+        });
+      } catch (error) {
+        console.error(error);
+        terminalText.style.color = '#ff3b30';
+        terminalText.textContent = "ERROR: INTERNET CORS BLOCKED OR CORES COLLAPSED.";
         receiveBtn.disabled = false;
+        receiveBtn.style.opacity = '1';
       }
-    }
-
-    receiveBtn.addEventListener('click', async () => {
-      try {
-        ensureAudio();
-        if (audioCtx.state === 'suspended') {
-          await audioCtx.resume();
-        }
-      } catch (e) {}
-      fetchPrescript();
-    });
-
-    timeValue.textContent = nowTime();
-  </script>
+    }, 1500); 
+  });
+</script>
 </body>
 </html>
