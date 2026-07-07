@@ -437,7 +437,7 @@
       await typeText('正在接收指令...', 18);
 
       try {
-        const res = await fetch('prescripts.txt');
+        const res = await fetch('prescript.js');
         if (!res.ok) {
           throw new Error(`未收到有效指令`);
         }
