@@ -47,15 +47,15 @@ const m = String(d.getMonth() + 1).padStart(2, "0");
 const day = String(d.getDate()).padStart(2, "0");
 return `${y}-${m}-${day}`;
 }
-function getOrCreateUserId() {
-let user = localStorage.getItem("username");
-if (user && user.trim()) return user.trim();
-user = localStorage.getItem("user_id");
-if (user && user.trim()) return user.trim();
-const id = "u_" + Math.random().toString(16).slice(2) + Date.now().toString(16);
-localStorage.setItem("user_id", id);
-return id;
-}
+//function getOrCreateUserId() {
+//let user = localStorage.getItem("username");
+//if (user && user.trim()) return user.trim();
+//user = localStorage.getItem("user_id");
+//if (user && user.trim()) return user.trim();
+//const id = "u_" + Math.random().toString(16).slice(2) + Date.now().toString(16);
+//localStorage.setItem("user_id", id);
+//return id;
+//}
 function makeDailyRng(userId) {
 // 移除了基于用户、日期和用户代理的固定种子字符串，改用 Math.random() 生成完全随机的数值作为种子。
 const seed = xmur3(Math.random().toString())();
